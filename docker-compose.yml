@@ -1,0 +1,13 @@
+services:
+  bus:
+    build: .
+    ports:
+      - "8765:8765"
+    volumes:
+      - bus-data:/data
+    environment:
+      - BUS_PORT=8765
+    restart: unless-stopped
+
+volumes:
+  bus-data:

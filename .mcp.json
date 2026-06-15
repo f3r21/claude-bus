@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "bus": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--from", "${CLAUDE_PLUGIN_ROOT}", "claude-bus"],
+      "env": { "BUS_DB": "${HOME}/.claude-bus/bus.db" }
+    }
+  }
+}

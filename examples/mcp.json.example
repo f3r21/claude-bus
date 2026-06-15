@@ -1,0 +1,14 @@
+// Rename to .mcp.json at your repo root (or register with `claude mcp add`).
+// Replace the absolute paths. BUS_DB must be IDENTICAL in every session.
+{
+  "mcpServers": {
+    "bus": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["/ABS/PATH/TO/claude-bus/bus_server.py"],
+      "env": {
+        "BUS_DB": "/Users/YOU/.claude-bus/bus.db"
+      }
+    }
+  }
+}

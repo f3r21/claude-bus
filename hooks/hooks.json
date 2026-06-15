@@ -1,0 +1,16 @@
+{
+  "description": "claude-bus reactive hook: pick up pending bus messages when a session stops.",
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/stop_bus.py\""
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "claude-bus",
+  "owner": { "name": "f3r21" },
+  "plugins": [
+    {
+      "name": "claude-bus",
+      "source": ".",
+      "description": "A shared message and state bus for multiple Claude Code sessions"
+    }
+  ]
+}

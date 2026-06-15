@@ -1,0 +1,9 @@
+{
+  "name": "claude-bus",
+  "description": "A shared message and state bus for multiple Claude Code sessions",
+  "version": "0.1.0",
+  "author": { "name": "fer" },
+  "homepage": "https://github.com/f3r21/claude-bus",
+  "repository": "https://github.com/f3r21/claude-bus",
+  "license": "MIT"
+}
