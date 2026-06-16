@@ -6,6 +6,10 @@ whether messages are waiting.
 
 Identity: first CLI argument, else $BUS_NAME. No identity -> silent no-op.
 For UserPromptSubmit, stdout (exit 0) is added to the model's context.
+
+Runs standalone (no claude_bus import) and queries SQLite directly, so it must
+stay in sync with core.py: "unread" means messages past the agent's read cursor
+(agents.last_read_id), not a per-row read flag.
 """
 
 import os
@@ -25,10 +29,15 @@ def main() -> int:
     conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.execute("PRAGMA busy_timeout=5000")
     conn.row_factory = sqlite3.Row
+
+    cursor_row = conn.execute(
+        "SELECT last_read_id FROM agents WHERE name = ?", (name,)
+    ).fetchone()
+    cursor = cursor_row["last_read_id"] if cursor_row else 0
     pending = conn.execute(
         "SELECT COUNT(*) AS n FROM messages "
-        "WHERE read = 0 AND (recipient = ? OR recipient = 'all') AND sender != ?",
-        (name, name),
+        "WHERE id > ? AND (recipient = ? OR recipient = 'all') AND sender != ?",
+        (cursor, name, name),
     ).fetchone()["n"]
     cutoff = time.time() - 180
     peers = conn.execute(
