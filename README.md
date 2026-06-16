@@ -32,7 +32,32 @@ share state through the SQLite file (WAL handles concurrent writes). For the HTT
 transport a single process serves every client. Both use the same schema, so they
 are interchangeable backends.
 
-Tools exposed: `register`, `agents`, `send`, `inbox`, `set_state`, `get_state`.
+Tools exposed: `register`, `whoami`, `agents`, `send`, `inbox`, `message_status`,
+`set_state`, `get_state`, `list_state`, `claim`, `release`, `list_claims`.
+
+### What v0.2 changed (breaking)
+
+- **Per-recipient delivery.** Each session has a read cursor; a broadcast reaches
+  every recipient independently (v0.1 lost it after the first reader). `inbox`
+  returns `{messages, pending_count}`; `inbox(peek=True)` reads without consuming so
+  history can be re-read; late joiners still receive earlier broadcasts.
+- **Compare-and-set state.** `set_state(key, value, expected_version=…)` rejects a
+  stale write (the error reports the current version); `mode="append"` accumulates;
+  `get_state` now returns `{value, updated_by, updated_at, version}` and `list_state`
+  lists keys without values. `message_status(id)` shows who has read a message.
+- **Session-bound identity (stdio).** The sender is the session's own registered
+  identity, not a free-text argument, so a session can't post as another. Call
+  `register` first; `whoami` reports your bound name. The HTTP transport serves many
+  clients from one process, so it takes identity explicitly and does **not** provide
+  this anti-spoofing guarantee.
+- **Advisory file claims.** `claim(path, ttl=1800)` / `release(path)` /
+  `list_claims()` announce "I'm editing this"; `register(owns=[globs])` makes
+  `agents()` flag sessions whose files overlap. Claims are advisory — they never lock
+  the filesystem.
+
+Existing `~/.claude-bus/bus.db` files are migrated automatically (`PRAGMA
+user_version`): shared `state` is preserved; pending messages are reset (the read
+model changed incompatibly).
 
 ---
 
@@ -99,15 +124,28 @@ Give each session an identity once, then talk normally:
 - `/bus backend` — join as `backend` (registers, lists peers, reads inbox).
 - `/bus` (no argument) — "check the bus": read your inbox and see who is connected.
 
-After joining, natural language maps to the tools:
+Recommended startup ritual before touching shared work: **`register` → `agents` →
+`get_state` → `inbox`** — announce yourself, see who else is here and whether you
+overlap, read the shared blackboard, then drain your inbox.
+
+After joining, natural language maps to the tools (the stdio tools use your bound
+identity, so there is no `sender`/`name` argument to pass or forge):
 
 | You say | Tool |
 |---|---|
-| "tell frontend the login is ready" | `send("backend","frontend",...)` |
-| "broadcast to everyone ..." | `send("backend","all",...)` |
-| "anything for me? / check the bus" | `inbox("backend")` |
-| "save X as login_schema" | `set_state("login_schema",...)` |
+| "who am I on the bus?" | `whoami()` |
+| "tell frontend the login is ready" | `send("frontend", ...)` |
+| "broadcast to everyone ..." | `send("all", ...)` |
+| "anything for me? / check the bus" | `inbox()` |
+| "let me peek without marking read" | `inbox(peek=True)` |
+| "who has read message 7?" | `message_status(7)` |
+| "save X as login_schema (only if still v3)" | `set_state("login_schema", X, expected_version=3)` |
+| "append this fix to the fixes log" | `set_state("fixes", "...", mode="append")` |
 | "what's in login_schema?" | `get_state("login_schema")` |
+| "what keys exist?" | `list_state()` |
+| "I'm editing Cap_4.tex" | `claim("Cap_4.tex")` |
+| "I'm done with Cap_4.tex" | `release("Cap_4.tex")` |
+| "who's editing what?" | `list_claims()` |
 | "who's connected?" | `agents()` |
 
 ### Reactive mode (hooks)
@@ -121,8 +159,9 @@ join with:
 export BUS_NAME=backend && claude        # then /bus backend
 ```
 
-The hook marks messages read before blocking, so there is no infinite loop (and it
-honors `stop_hook_active`).
+The hook advances the session's read cursor (and records receipts) before blocking,
+so a second Stop finds nothing new and there is no infinite loop (it also honors
+`stop_hook_active`).
 
 ---
 
