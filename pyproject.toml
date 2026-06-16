@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "claude-bus"
-version = "0.1.0"
+version = "0.2.0"
 description = "A shared message and state bus for multiple Claude Code sessions"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -12,6 +12,9 @@ license = { text = "MIT" }
 authors = [{ name = "fer" }]
 keywords = ["claude", "claude-code", "mcp", "ipc", "message-bus"]
 dependencies = ["mcp>=1.2.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "ruff>=0.4", "black>=24.0", "isort>=5.12"]
 
 [project.scripts]
 claude-bus = "claude_bus.server:main"
@@ -22,3 +25,22 @@ Homepage = "https://github.com/f3r21/claude-bus"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/claude_bus"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "unit: isolated tests of core storage operations",
+    "integration: end-to-end tests spanning the server/identity layer",
+]
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+extend-select = ["I"]
